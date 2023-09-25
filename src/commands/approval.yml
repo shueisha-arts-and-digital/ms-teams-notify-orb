@@ -45,24 +45,24 @@ steps:
         {
           "@type": "MessageCard",
           "@context": "http://schema.org/extensions",
-          "themeColor": << parameter.color >>,
+          "themeColor": << parameters.color >>,
           "summary": "CircleCI Build Notification",
           "sections": [
             {
               "activityTitle": << parameters.message >>,
               "facts": [
-                <<# parameter.include_project_field >>
+                <<# parameters.include_project_field >>
                 {
                   "name": "Project",
                   "value": "$CIRCLE_PROJECT_REPONAME"
                 },
-                <</ parameter.include_project_field >>
-                <<# parameter.include_job_number_field >>
+                <</ parameters.include_project_field >>
+                <<# parameters.include_job_number_field >>
                 {
                   "name": "Job Number",
                   "value": "$CIRCLE_BUILD_NUM"
                 }
-                <</ parameter.include_job_number_field >>
+                <</ parameters.include_job_number_field >>
               ],
               "markdown": true
             }
