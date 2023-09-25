@@ -2,7 +2,7 @@ version: 2.1
 setup: true
 orbs:
   orb-tools: circleci/orb-tools@12.0
-  shellcheck: circleci/shellcheck@3.1
+  shellcheck: circleci/shellcheck@3.2
 
 filters: &filters
   tags:
@@ -20,18 +20,16 @@ workflows:
           exclude: "RC008 RC009"
       - shellcheck/check:
           filters: *filters
-      # - orb-tools/publish:
-      #     orb-name: pj8/ms-teams-notify
-      #     vcs-type: << pipeline.project.type >>
-      #     requires: [orb-tools/lint, orb-tools/pack, orb-tools/review, shellcheck/check]
-      #     # Use a context to hold your publishing token.
-      #     context: orb-publishing
-      #     filters: *filters
+      - orb-tools/publish:
+          orb_name: pj8/ms-teams-notify
+          vcs_type: << pipeline.project.type >>
+          requires: [orb-tools/lint, orb-tools/pack, orb-tools/review, shellcheck/check]
+          context: orb-publishing
+          filters: *filters
       # Triggers the next workflow in the Orb Development Kit.
       - orb-tools/continue:
           orb_name: pj8/ms-teams-notify
           pipeline_number: << pipeline.number >>
           vcs_type: << pipeline.project.type >>
-          requires: [orb-tools/lint, orb-tools/pack, orb-tools/review, shellcheck/check]
-          # requires: [orb-tools/publish]
+          requires: [orb-tools/publish]
           filters: *filters
