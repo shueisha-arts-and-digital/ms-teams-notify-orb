@@ -1,0 +1,8 @@
+version: 2.1
+
+description: >
+  This orb provides commands and jobs to send notifications to Microsoft Teams chat.
+
+display:
+  home_url: "https://github.com/pj8/ms-teams-notify-orb"
+  source_url: "https://github.com/pj8/ms-teams-notify-orb"

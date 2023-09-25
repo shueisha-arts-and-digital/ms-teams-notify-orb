@@ -1,0 +1,5 @@
+docker:
+  - environment:
+      TERM: dumb
+    image: 'cimg/node:<<parameters.tag>>'
+resource_class: small

@@ -1,0 +1,177 @@
+description: >
+  Send a status alert at the end of a job based on success or failure. Must be the last step in a job.
+parameters:
+  fail_only:
+    type: boolean
+    default: false
+    description: "if `true`, notifications successful jobs will not be sent"
+  include_job_number_field:
+    type: boolean
+    default: true
+    description: "Whether or not to include the job number field in the message"
+  include_project_field:
+    type: boolean
+    default: true
+    description: "Whether or not to include the project field in the message"
+  include_visit_job_action:
+    type: boolean
+    default: true
+    description: "Whether or not to include the 'Visit Job' action in the message"
+  failure_message:
+    type: string
+    default: "🔴 A $CIRCLE_JOB job has failed!"
+    description: "Message to send in notification"
+  success_message:
+    type: string
+    default: "🎉 A $CIRCLE_JOB job has succeeded!"
+    description: "Message to send in notification"
+  webhook:
+    type: string
+    default: ${MS_TEAMS_WEBHOOK}
+    description: "Enter either your Webhook URL or the CircleCI UI to add your Webhook URL under the 'MS_TEAMS_WEBHOOK' environment variable"
+steps:
+  - run:
+      command: |
+        echo 'export BUILD_STATUS="fail"' >> $BASH_ENV
+      name: Setting Failure Condition
+      when: on_fail
+  - run:
+      command: |
+        echo 'export BUILD_STATUS="success"' >> $BASH_ENV
+      name: Setting Success Condition
+      when: on_success
+  - run:
+      name: Provide error if non-bash shell
+      command: |
+        if [ ! -x /bin/bash ]; then
+          echo Bash not installed.
+          exit 1
+        fi
+  - run:
+      name: Prepare Message Template
+      command: |
+        # Note that the "\<<" in the heredoc declaration is escaped from
+
+        # CircleCI's parameters syntax.
+
+        MS_TEAMS_SUCCESS_MSG=$(cat \<<END_HEREDOC
+
+        {
+          "@type": "MessageCard",
+          "@context": "http://schema.org/extensions",
+          "themeColor": "1CBF43",
+          "summary": "CircleCI Build Notification",
+          "sections": [
+            {
+              "activityTitle": << parameters.message >>,
+              "facts": [
+                <<# parameter.include_project_field >>
+                {
+                  "name": "Project",
+                  "value": "$CIRCLE_PROJECT_REPONAME"
+                },
+                <</ parameter.include_project_field >>
+                <<# parameter.include_job_number_field >>
+                {
+                  "name": "Job Number",
+                  "value": "$CIRCLE_BUILD_NUM"
+                }
+                <</ parameter.include_job_number_field >>
+              ],
+              "markdown": true
+            }
+          ],
+          "potentialAction": [
+            {
+              "@type": "OpenUri",
+              "name": "Visit Workflow",
+              "targets": [
+                {
+                  "os": "default",
+                  "uri": ""
+                }
+              ]
+            }
+          ]
+        }
+
+        END_HEREDOC
+
+        )
+        echo "$MS_TEAMS_SUCCESS_MSG" > /tmp/ms_teams_success_message
+
+        MS_TEAMS_FAIL_MSG=$(cat \<<END_HEREDOC
+
+        {
+          "@type": "MessageCard",
+          "@context": "http://schema.org/extensions",
+          "themeColor": "ed5c5c",
+          "summary": "CircleCI Build Notification",
+          "sections": [
+            {
+              "activityTitle": << parameters.message >>,
+              "facts": [
+                <<# parameter.include_project_field >>
+                {
+                  "name": "Project",
+                  "value": "$CIRCLE_PROJECT_REPONAME"
+                },
+                <</ parameter.include_project_field >>
+                <<# parameter.include_job_number_field >>
+                {
+                  "name": "Job Number",
+                  "value": "$CIRCLE_BUILD_NUM"
+                }
+                <</ parameter.include_job_number_field >>
+              ],
+              "markdown": true
+            }
+          ],
+          "potentialAction": [
+            {
+              "@type": "OpenUri",
+              "name": "Visit Workflow",
+              "targets": [
+                {
+                  "os": "default",
+                  "uri": ""
+                }
+              ]
+            }
+          ]
+        }
+
+        END_HEREDOC
+
+        )
+        echo "$MS_TEAMS_FAIL_MSG" > /tmp/ms_teams_fail_message
+  - run:
+      command: |
+        SUCCESS_MSG_PATH=/tmp/ms_teams_success_message
+        FAIL_MSG_PATH=/tmp/ms_teams_fail_message
+
+        if [ -z "<< parameters.webhook >>" ]; then
+          echo "NO MS TEAMS WEBHOOK SET"
+          echo "Please input your MS_TEAMS_WEBHOOK value either in the settings for this project, or as a parameter for this orb."
+          exit 1
+        else
+          # If successful
+          if [ "$BUILD_STATUS" = "success" ]; then
+            # Skip if fail_only
+            if [ "<< parameters.fail_only >>" = "true" ]; then
+              echo "The job completed successfully"
+              echo '"fail_only" is set to true. No notification will be sent.'
+            else
+              curl -X POST -H 'Content-type: application/json' \
+                --data-binary @${SUCCESS_MSG_PATH} \
+                << parameters.webhook >>
+              echo "Job completed successfully. Alert sent."
+            fi
+          else
+            # If failed
+            curl -X POST -H 'Content-type: application/json' \
+              --data-binary @${FAIL_MSG_PATH} \
+              << parameters.webhook >>
+            echo "Job failed. Alert sent."
+          fi
+        fi

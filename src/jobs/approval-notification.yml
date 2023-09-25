@@ -1,0 +1,38 @@
+description: >
+  Notify MS Teams about an awaiting approval job
+
+executor: default
+
+parameters:
+  color:
+    type: string
+    default: ""
+    description: "Hex color valur for notification theme color"
+  include_job_number_field:
+    type: boolean
+    default: true
+    description: "Whether or not to include the job number field in the message"
+  include_project_field:
+    type: boolean
+    default: true
+    description: "Whether or not to include the project field in the message"
+  message:
+    type: string
+    default: "A workflow in CircleCI awaiting your approval."
+    description: "Message to send in notification"
+  url:
+    type: string
+    default: "https://circleci.com/workflow-run/${CIRCLE_WORKFLOW_ID}"
+    description: "The URL to link back to"
+  webhook:
+    type: string
+    default: ${MS_TEAMS_WEBHOOK}
+    description: "Enter either your Webhook URL or the CircleCI UI to add your Webhook URL under the 'MS_TEAMS_WEBHOOK' environment variable"
+steps:
+  - approval:
+      color: << parameters.color >>
+      include_job_number_field: << parameters.include_job_number_field >>
+      include_project_field: << parameters.include_project_field >>
+      message: << parameters.message >>
+      url: << parameters.url >>
+      webhook: << parameters.webhook >>
