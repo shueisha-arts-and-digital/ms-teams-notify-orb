@@ -15,15 +15,15 @@ workflows:
           filters: *filters
       - orb-tools/pack:
           filters: *filters
-      # - orb-tools/review:
-      #     filters: *filters
+      - orb-tools/review:
+          filters: *filters
+          exclude: "RC008 RC009"
       - shellcheck/check:
           filters: *filters
       - orb-tools/publish:
-          orb-name: pj8/ms-teams-notify
-          vcs-type: << pipeline.project.type >>
-          # requires: [orb-tools/lint, orb-tools/pack, orb-tools/review, shellcheck/check]
-          requires: [orb-tools/lint, orb-tools/pack, shellcheck/check]
+          orb_name: pj8/ms-teams-notify
+          vcs_type: << pipeline.project.type >>
+          requires: [orb-tools/lint, orb-tools/pack, orb-tools/review, shellcheck/check]
           # Use a context to hold your publishing token.
           context: orb-publishing
           filters: *filters
