@@ -24,6 +24,7 @@ jobs:
       - image: cimg/base:current
     steps:
       - checkout
+      # - teams/approval
 workflows:
   test-deploy:
     jobs:
