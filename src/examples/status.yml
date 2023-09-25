@@ -1,0 +1,18 @@
+description: >
+  Send a status alert at the end of a job based on success or failure. This must be the last step in a job.
+usage:
+
+  jobs:
+    build:
+      docker:
+        - image: <docker image>
+      steps:
+        - run: exit 0
+        - teams/status:
+            fail_only: true
+            failure_message: This is a custom message notification
+            webhook: https://outlook.office.com/webhook/...
+
+  version: 2.1
+  orbs:
+    teams: pj8/ms-teams-notify@x.y.z

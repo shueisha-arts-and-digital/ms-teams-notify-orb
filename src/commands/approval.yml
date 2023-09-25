@@ -1,0 +1,100 @@
+description: >
+  Send a notification that a manual approval job is ready
+parameters:
+  color:
+    type: string
+    default: ""
+    description: "Hex color valur for notification theme color"
+  include_job_number_field:
+    type: boolean
+    default: true
+    description: "Whether or not to include the job number field in the message"
+  include_project_field:
+    type: boolean
+    default: true
+    description: "Whether or not to include the project field in the message"
+  message:
+    type: string
+    default: "A workflow in CircleCI awaiting your approval."
+    description: "Message to send in notification"
+  url:
+    type: string
+    default: "https://circleci.com/workflow-run/${CIRCLE_WORKFLOW_ID}"
+    description: "The URL to link back to"
+  webhook:
+    type: string
+    default: ${MS_TEAMS_WEBHOOK}
+    description: "Enter either your Webhook URL or the CircleCI UI to add your Webhook URL under the 'MS_TEAMS_WEBHOOK' environment variable"
+steps:
+  - run:
+      name: Provide error if non-bash shell
+      command: |
+        if [ ! -x /bin/bash ]; then
+          echo Bash not installed.
+          exit 1
+        fi
+  - run:
+      name: Prepare Message Template
+      command: |
+        # Note that the "\<<" in the heredoc declaration is escaped from
+
+        # CircleCI's parameters syntax.
+
+        MS_TEAMS_MSG_TEMPLATE=$(cat \<<END_HEREDOC
+
+        {
+          "@type": "MessageCard",
+          "@context": "http://schema.org/extensions",
+          "themeColor": << parameter.color >>,
+          "summary": "CircleCI Build Notification",
+          "sections": [
+            {
+              "activityTitle": << parameters.message >>,
+              "facts": [
+                <<# parameter.include_project_field >>
+                {
+                  "name": "Project",
+                  "value": "$CIRCLE_PROJECT_REPONAME"
+                },
+                <</ parameter.include_project_field >>
+                <<# parameter.include_job_number_field >>
+                {
+                  "name": "Job Number",
+                  "value": "$CIRCLE_BUILD_NUM"
+                }
+                <</ parameter.include_job_number_field >>
+              ],
+              "markdown": true
+            }
+          ],
+          "potentialAction": [
+            {
+              "@type": "OpenUri",
+              "name": "Visit Workflow",
+              "targets": [
+                {
+                  "os": "default",
+                  "uri": ""
+                }
+              ]
+            }
+          ]
+        }
+
+        END_HEREDOC
+
+        )
+
+        echo "$MS_TEAMS_MSG_TEMPLATE" > /tmp/ms_teams_message
+  - run:
+      command: |
+        MSG_PATH=/tmp/ms_teams_message
+        if [ -z "<< parameters.webhook >>" ]; then
+          echo "NO MS TEAMS WEBHOOK SET"
+          echo "Please input your MS_TEAMS_WEBHOOK value either in the settings for this project, or as a parameter for this orb."
+          exit 1
+        else
+          curl -X POST -H 'Content-type: application/json' \
+            --data-binary @${MSG_PATH} \
+            << parameters.webhook >>
+        fi

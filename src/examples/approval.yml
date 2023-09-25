@@ -1,0 +1,13 @@
+description: >
+  Notify MS Teams about an pending approval.
+usage:
+  version: 2.1
+  orbs:
+    teams: pj8/ms-teams-notify@x.y.z
+  workflows:
+    your-workflow:
+      jobs:
+        - teams/approval-notification:
+            color: "3AA3E3"
+            message: Pending approval
+            webhook: https://outlook.office.com/webhook/...
