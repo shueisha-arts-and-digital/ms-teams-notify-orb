@@ -1,5 +1,6 @@
 docker:
   - environment:
       TERM: dumb
-    image: 'cimg/node:<<parameters.tag>>'
+    image: cibuilds/base:latest
 resource_class: small
+description: default exector
