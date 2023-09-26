@@ -8,14 +8,6 @@ parameters:
     type: string
     default: ""
     description: "Hex color valur for notification theme color"
-  include_job_number_field:
-    type: boolean
-    default: true
-    description: "Whether or not to include the job number field in the message"
-  include_project_field:
-    type: boolean
-    default: true
-    description: "Whether or not to include the project field in the message"
   message:
     type: string
     default: "A workflow in CircleCI awaiting your approval."
@@ -31,8 +23,6 @@ parameters:
 steps:
   - approval:
       color: << parameters.color >>
-      include_job_number_field: << parameters.include_job_number_field >>
-      include_project_field: << parameters.include_project_field >>
       message: << parameters.message >>
       url: << parameters.url >>
       webhook: << parameters.webhook >>
