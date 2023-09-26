@@ -5,18 +5,6 @@ parameters:
     type: boolean
     default: false
     description: "if `true`, notifications successful jobs will not be sent"
-  include_job_number_field:
-    type: boolean
-    default: true
-    description: "Whether or not to include the job number field in the message"
-  include_project_field:
-    type: boolean
-    default: true
-    description: "Whether or not to include the project field in the message"
-  include_visit_job_action:
-    type: boolean
-    default: true
-    description: "Whether or not to include the 'Visit Job' action in the message"
   failure_message:
     type: string
     default: "🔴 A $CIRCLE_JOB job has failed!"
@@ -25,6 +13,10 @@ parameters:
     type: string
     default: "🎉 A $CIRCLE_JOB job has succeeded!"
     description: "Message to send in notification"
+  only_for_branches:
+    type: string
+    default: ""
+    description: "If set, a comma-separated list of branches for which to send notifications. No spaces."
   webhook:
     type: string
     default: ${MS_TEAMS_WEBHOOK}
@@ -49,10 +41,14 @@ steps:
         fi
   - run:
       name: Prepare Message Template
+      when: always
       command: |
         # Note that the "\<<" in the heredoc declaration is escaped from
 
         # CircleCI's parameters syntax.
+
+        SUCCESS_MSG="<< parameters.success_message >>"
+        FAILURE_MSG="<< parameters.failure_message >>"
 
         MS_TEAMS_SUCCESS_MSG=$(cat \<<END_HEREDOC
 
@@ -63,20 +59,16 @@ steps:
           "summary": "CircleCI Build Notification",
           "sections": [
             {
-              "activityTitle": << parameters.success_message >>,
+              "activityTitle": "$SUCCESS_MSG",
               "facts": [
-                <<# parameters.include_project_field >>
                 {
                   "name": "Project",
                   "value": "$CIRCLE_PROJECT_REPONAME"
                 },
-                <</ parameters.include_project_field >>
-                <<# parameters.include_job_number_field >>
                 {
                   "name": "Job Number",
                   "value": "$CIRCLE_BUILD_NUM"
                 }
-                <</ parameters.include_job_number_field >>
               ],
               "markdown": true
             }
@@ -84,11 +76,11 @@ steps:
           "potentialAction": [
             {
               "@type": "OpenUri",
-              "name": "Visit Workflow",
+              "name": "Visit Job",
               "targets": [
                 {
                   "os": "default",
-                  "uri": ""
+                  "uri": "$CIRCLE_BUILD_URL"
                 }
               ]
             }
@@ -109,20 +101,16 @@ steps:
           "summary": "CircleCI Build Notification",
           "sections": [
             {
-              "activityTitle": << parameters.failure_message >>,
+              "activityTitle": "$FAILURE_MSG",
               "facts": [
-                <<# parameters.include_project_field >>
                 {
                   "name": "Project",
                   "value": "$CIRCLE_PROJECT_REPONAME"
                 },
-                <</ parameters.include_project_field >>
-                <<# parameters.include_job_number_field >>
                 {
                   "name": "Job Number",
                   "value": "$CIRCLE_BUILD_NUM"
                 }
-                <</ parameters.include_job_number_field >>
               ],
               "markdown": true
             }
@@ -130,11 +118,11 @@ steps:
           "potentialAction": [
             {
               "@type": "OpenUri",
-              "name": "Visit Workflow",
+              "name": "Visit Job",
               "targets": [
                 {
                   "os": "default",
-                  "uri": ""
+                  "uri": "$CIRCLE_BUILD_URL"
                 }
               ]
             }
@@ -146,32 +134,48 @@ steps:
         )
         echo "$MS_TEAMS_FAIL_MSG" > /tmp/ms_teams_fail_message
   - run:
+      name: Send Message
+      when: always
       command: |
+        CURRENT_BRANCH_IN_FILTER=false
+
+        IFS="," read -ra BRANCH_FILTERS \<<< "<< parameters.only_for_branches>>"
+
+        for i in "${BRANCH_FILTERS[@]}"; do
+          if [ "${i}" = "${CIRCLE_BRANCH}" ]; then
+            CURRENT_BRANCH_IN_FILTER=true
+          fi
+        done
+
         SUCCESS_MSG_PATH=/tmp/ms_teams_success_message
         FAIL_MSG_PATH=/tmp/ms_teams_fail_message
 
-        if [ -z "<< parameters.webhook >>" ]; then
-          echo "NO MS TEAMS WEBHOOK SET"
-          echo "Please input your MS_TEAMS_WEBHOOK value either in the settings for this project, or as a parameter for this orb."
-          exit 1
-        else
-          # If successful
-          if [ "$BUILD_STATUS" = "success" ]; then
-            # Skip if fail_only
-            if [ "<< parameters.fail_only >>" = "true" ]; then
-              echo "The job completed successfully"
-              echo '"fail_only" is set to true. No notification will be sent.'
-            else
-              curl -X POST -H 'Content-type: application/json' \
-                --data-binary @${SUCCESS_MSG_PATH} \
-                << parameters.webhook >>
-              echo "Job completed successfully. Alert sent."
-            fi
+        if [ "x" == "x<< parameters.only_for_branches >>" ] || [ "${CURRENT_BRANCH_IN_FILTER}" = true ]; then
+          if [ -z "<< parameters.webhook >>" ]; then
+            echo "NO MS TEAMS WEBHOOK SET"
+            echo "Please input your MS_TEAMS_WEBHOOK value either in the settings for this project, or as a parameter for this orb."
+            exit 1
           else
-            # If failed
-            curl -X POST -H 'Content-type: application/json' \
-              --data-binary @${FAIL_MSG_PATH} \
-              << parameters.webhook >>
-            echo "Job failed. Alert sent."
+            # If successful
+            if [ "$BUILD_STATUS" = "success" ]; then
+              # Skip if fail_only
+              if [ "<< parameters.fail_only >>" = "true" ]; then
+                echo "The job completed successfully"
+                echo '"fail_only" is set to true. No notification will be sent.'
+              else
+                curl -X POST -H 'Content-type: application/json' \
+                  --data-binary @${SUCCESS_MSG_PATH} \
+                  << parameters.webhook >>
+                echo "Job completed successfully. Alert sent."
+              fi
+            else
+              # If failed
+              curl -X POST -H 'Content-type: application/json' \
+                --data-binary @${FAIL_MSG_PATH} \
+                << parameters.webhook >>
+              echo "Job failed. Alert sent."
+            fi
           fi
+        else
+          echo "Current branch is not in the branch filter. Not sending notification."
         fi

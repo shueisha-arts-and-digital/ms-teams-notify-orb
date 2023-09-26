@@ -5,14 +5,6 @@ parameters:
     type: string
     default: ""
     description: "Hex color valur for notification theme color"
-  include_job_number_field:
-    type: boolean
-    default: true
-    description: "Whether or not to include the job number field in the message"
-  include_project_field:
-    type: boolean
-    default: true
-    description: "Whether or not to include the project field in the message"
   message:
     type: string
     default: "A workflow in CircleCI awaiting your approval."
@@ -40,29 +32,29 @@ steps:
 
         # CircleCI's parameters syntax.
 
+        COLOR="<< parameters.color >>"
+        MSG="<< parameters.message >>"
+        WORKFLOW_URL="<< parameters.url >>"
+
         MS_TEAMS_MSG_TEMPLATE=$(cat \<<END_HEREDOC
 
         {
           "@type": "MessageCard",
           "@context": "http://schema.org/extensions",
-          "themeColor": << parameters.color >>,
+          "themeColor": "$COLOR",
           "summary": "CircleCI Build Notification",
           "sections": [
             {
-              "activityTitle": << parameters.message >>,
+              "activityTitle": "$MSG",
               "facts": [
-                <<# parameters.include_project_field >>
                 {
                   "name": "Project",
                   "value": "$CIRCLE_PROJECT_REPONAME"
                 },
-                <</ parameters.include_project_field >>
-                <<# parameters.include_job_number_field >>
                 {
                   "name": "Job Number",
                   "value": "$CIRCLE_BUILD_NUM"
                 }
-                <</ parameters.include_job_number_field >>
               ],
               "markdown": true
             }
@@ -74,7 +66,7 @@ steps:
               "targets": [
                 {
                   "os": "default",
-                  "uri": ""
+                  "uri": "$WORKFLOW_URL"
                 }
               ]
             }
@@ -87,6 +79,7 @@ steps:
 
         echo "$MS_TEAMS_MSG_TEMPLATE" > /tmp/ms_teams_message
   - run:
+      name: Send Message
       command: |
         MSG_PATH=/tmp/ms_teams_message
         if [ -z "<< parameters.webhook >>" ]; then
