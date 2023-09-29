@@ -55,11 +55,11 @@ steps:
         {
           "@type": "MessageCard",
           "@context": "http://schema.org/extensions",
+          "title": "$SUCCESS_MSG",
           "themeColor": "1CBF43",
-          "summary": "CircleCI Build Notification",
+          "summary": "$SUCCESS_MSG",
           "sections": [
             {
-              "activityTitle": "$SUCCESS_MSG",
               "facts": [
                 {
                   "name": "Project",
@@ -97,11 +97,11 @@ steps:
         {
           "@type": "MessageCard",
           "@context": "http://schema.org/extensions",
+          "title": "$FAILURE_MSG",
           "themeColor": "ed5c5c",
-          "summary": "CircleCI Build Notification",
+          "summary": "$FAILURE_MSG",
           "sections": [
             {
-              "activityTitle": "$FAILURE_MSG",
               "facts": [
                 {
                   "name": "Project",
