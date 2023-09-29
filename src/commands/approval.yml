@@ -41,11 +41,11 @@ steps:
         {
           "@type": "MessageCard",
           "@context": "http://schema.org/extensions",
+          "title": "$MSG",
           "themeColor": "$COLOR",
-          "summary": "CircleCI Build Notification",
+          "summary": "$MSG",
           "sections": [
             {
-              "activityTitle": "$MSG",
               "facts": [
                 {
                   "name": "Project",
