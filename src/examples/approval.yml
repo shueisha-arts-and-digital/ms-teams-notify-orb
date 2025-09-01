@@ -3,7 +3,7 @@ description: >
 usage:
   version: 2.1
   orbs:
-    teams: pj8/ms-teams-notify@x.y.z
+    teams: shueisha-arts-and-digital/ms-teams-notify@x.y.z
   workflows:
     your-workflow:
       jobs:
